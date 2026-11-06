@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive SOP & Runbook Engine | 100% Client-Side BYOK Studio</title>
+  <meta name="description" content="Generate and execute multi-phase interactive Standard Operating Procedures with integrated countdown timers, persistent checklist state, Notion export, and zero cloud tracking.">
+  <meta name="keywords" content="sop builder, standard operating procedure generator, interactive runbook, byok sop tool, checklist with timers, notion markdown export, client-side runbook">
+  <link rel="canonical" href="https://greentools-dev.github.io/dynamic-sop-builder/">
+  <meta property="og:title" content="Interactive SOP & Runbook Engine">
+  <meta property="og:description" content="Generate and execute multi-phase operational runbooks with live timers and local state persistence.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://greentools-dev.github.io/dynamic-sop-builder/">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #f8fafc;
+      background-image: 
+        radial-gradient(rgba(15, 23, 42, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-runbook-mount, #print-runbook-mount * {
+        visibility: visible;
+      }
+      #print-runbook-mount {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        background: white;
+      }
+    }
+  </style>
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "name": "Interactive SOP & Runbook Engine",
+        "url": "https://greentools-dev.github.io/dynamic-sop-builder/",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript. Requires HTML5.",
+        "description": "Interactive procedural runbook builder. Generates checklist phases, embeds live countdown timers for time-boxed tasks, and exports to Notion markdown.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is my company checklist data stored on any server?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Never. All operational procedures, checklist states, operator notes, and API keys are stored exclusively in your local browser's localStorage. Zero data is uploaded."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do the embedded countdown timers work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Time-boxed operational tasks feature interactive in-browser timers that count down in real time with visual and audio chime alerts upon completion."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I export my SOP to Notion?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes! Click 'Export to Notion Markdown' to copy formatted checklist markdown, phase headers, callout boxes, and sub-bullets ready for direct pasting into Notion."
+            }
+          }
+        ]
+      }
+    ]
+  </script>
+</head>
+<body class="min-h-screen flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-100 selection:text-brand-900">
+
+  <!-- Header -->
+  <header class="border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm shadow-emerald-500/20">
+          <i data-lucide="check-square" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-slate-900 tracking-tight text-lg">GreenTools<span class="text-emerald-600">.dev</span></span>
+          <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">SOP Builder</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- BYOK Key Trigger -->
+        <button type="button" id="btn-open-settings" class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs">
+          <i data-lucide="key" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <span id="key-status-label">API Key: Not Set</span>
+        </button>
+        <a href="https://github.com/greentools-dev/dynamic-sop-builder" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-slate-900 transition-colors p-1.5">
+          <i data-lucide="github" class="w-5 h-5"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Error / Alert Banner -->
+  <div id="alert-banner" class="hidden max-w-7xl mx-auto px-4 mt-4">
+    <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-medium text-amber-800 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0"></i>
+        <span id="alert-message">Notice message</span>
+      </div>
+      <button type="button" id="btn-close-alert" class="text-amber-600 hover:text-amber-800 p-1">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Hero & Primary Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-8 md:py-10 flex flex-col">
+    <div class="text-center max-w-2xl mx-auto mb-8">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        Interactive SOP &amp; Runbook Engine
+      </h1>
+      <p class="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed">
+        Transform operational processes into multi-phase interactive runbooks with embedded timers and persistent state. Use your AI API key or preview instant demo workflows.
+      </p>
+    </div>
+
+    <!-- Top Generation Input Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-8 max-w-4xl mx-auto w-full flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600"></i>
+          Define Standard Operating Procedure
+        </span>
+        <button type="button" id="btn-demo-mode" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline underline-offset-2">
+          Try Demo (No Key)
+        </button>
+      </div>
+
+      <div>
+        <label for="input-process" class="block text-xs font-semibold text-slate-700 mb-1.5">Process or Workflow Title</label>
+        <input type="text" id="input-process" placeholder="e.g. YouTube Video Publishing & Distribution Checklist" class="w-full px-3.5 py-2.5 text-xs font-sans rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label for="input-context" class="block font-semibold text-slate-700 mb-1">Additional Context / Roles (Optional)</label>
+          <input type="text" id="input-context" placeholder="e.g. Video Editor and Social Media Manager role division" class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label for="select-complexity" class="block font-semibold text-slate-700 mb-1">Procedure Depth</label>
+          <select id="select-complexity" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            <option value="standard" selected>Standard (3 Phases &bull; 8-10 Steps)</option>
+            <option value="detailed">Thorough (4 Phases &bull; 12-16 Steps)</option>
+            <option value="emergency">Incident / Emergency Runbook (Rapid Response)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center justify-between gap-3 flex-wrap">
+        <span class="text-[11px] text-slate-400">Includes countdown timers, checklist checkboxes, and local storage auto-save.</span>
+        <button type="button" id="btn-generate-ai" class="py-2.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2">
+          <i data-lucide="wand-2" class="w-4 h-4"></i>
+          <span id="label-generate">Generate Interactive SOP</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active SOP Workspace -->
+    <div id="sop-workspace" class="max-w-4xl mx-auto w-full flex flex-col gap-6">
+      
+      <!-- Toolbar & Progress Header -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 id="sop-title-display" class="text-base sm:text-lg font-bold text-slate-900">YouTube Video Publishing &amp; Distribution Checklist</h2>
+          <div class="flex items-center gap-3 text-xs text-slate-500 mt-1">
+            <span id="label-completion-pct" class="font-bold text-emerald-700 font-mono">0% Completed</span>
+            <span>&bull;</span>
+            <span id="label-completed-count" class="font-mono">0 of 9 steps checked</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" id="btn-reset-checklist" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+            Reset Checks
+          </button>
+          <button type="button" id="btn-print-sop" class="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-2xs">
+            <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-600"></i>
+            Print Runbook
+          </button>
+          <button type="button" id="btn-copy-notion" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm shadow-emerald-600/20">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="label-copy-notion">Export to Notion</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Phases & Steps Checklist Container -->
+      <div id="phases-container" class="space-y-6">
+        <!-- Dynamically rendered multi-phase checklist cards -->
+      </div>
+
+    </div>
+
+    <!-- Print Mount for Clean Layout -->
+    <div id="print-runbook-mount" class="hidden print:block"></div>
+
+    <!-- Sponsor Slot -->
+    <aside id="sponsor-slot" class="mt-12 p-5 rounded-2xl border border-dashed border-slate-300 bg-white text-center text-xs text-slate-500 max-w-3xl mx-auto shadow-2xs">
+      <span class="font-semibold text-slate-600 uppercase tracking-wider text-[11px] block mb-1">Sponsored</span>
+      Standardize team operations, company onboarding, and QA runbooks with GreenTools Workflow.
+    </aside>
+
+    <!-- FAQ & Guide -->
+    <section class="mt-12 bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm max-w-4xl mx-auto w-full">
+      <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+        <i data-lucide="help-circle" class="w-5 h-5 text-emerald-600"></i>
+        Interactive SOP Guide &amp; Frequently Asked Questions
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-600">
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">What makes this different from static documentation?</h3>
+          <p class="leading-relaxed">
+            Static SOPs get forgotten in PDFs. This engine renders actionable, interactive checklists with embedded task timers that persist completion state in your browser, keeping operators focused on time-boxed execution.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">Where is the checklist progress saved?</h3>
+          <p class="leading-relaxed">
+            Every checkbox toggle and operator note is immediately serialized into <code>localStorage</code>. You can refresh your browser or close the tab, and your runbook state will remain intact.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">How do I paste the runbook into Notion?</h3>
+          <p class="leading-relaxed">
+            Click "Export to Notion". The tool copies formatted GitHub-flavored markdown with Notion-compatible callout headers, to-do checkboxes (<code>- [ ]</code>), and bullet items. Simply press <kbd>Ctrl+V</kbd> inside any Notion page.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-slate-800 mb-1">Is this tool private?</h3>
+          <p class="leading-relaxed">
+            100% private. All SOP data, checklist states, operator notes, and API keys are stored exclusively in your browser's local memory with zero remote logging.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- BYOK Settings Modal -->
+  <div id="settings-modal" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+          <i data-lucide="key" class="w-4 h-4 text-emerald-600"></i>
+          AI Provider &amp; API Key Settings
+        </h3>
+        <button type="button" id="btn-close-settings" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-500 leading-relaxed">
+        Enter your API key. It is saved only in local storage on this computer and used for direct browser-to-API calls.
+      </div>
+
+      <!-- Provider Selector -->
+      <div>
+        <label for="select-provider" class="block text-xs font-semibold text-slate-700 mb-1">AI Provider</label>
+        <select id="select-provider" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <option value="gemini" selected>Google Gemini (Recommended &bull; Fast Free Tier)</option>
+          <option value="openai">OpenAI / OpenRouter</option>
+        </select>
+      </div>
+
+      <!-- Model Name -->
+      <div>
+        <label for="input-model" class="block text-xs font-semibold text-slate-700 mb-1">Model Name</label>
+        <input type="text" id="input-model" value="gemini-2.5-flash" class="w-full px-3 py-1.5 text-xs font-mono rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+      </div>
+
+      <!-- Key Input -->
+      <div>
+        <label for="input-api-key" class="block text-xs font-semibold text-slate-700 mb-1">API Key</label>
+        <input type="password" id="input-api-key" placeholder="AIzaSy... or sk-..." class="w-full px-3 py-2 text-xs font-mono rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+      </div>
+
+      <!-- Actions -->
+      <div class="pt-2 flex items-center justify-between gap-2">
+        <button type="button" id="btn-clear-key" class="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+          Clear Key
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-cancel-settings" class="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-lg border border-slate-200 transition-colors">
+            Cancel
+          </button>
+          <button type="button" id="btn-save-settings" class="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm">
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 bg-white mt-12 py-8">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-800">GreenTools.dev</span>
+        <span>&bull;</span>
+        <span>100% Client-Side Web Studios</span>
+      </div>
+      <div>
+        Zero Server Storage &bull; Private Local Keys &bull; No Telemetry
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Logic -->
+  <script>
+    lucide.createIcons();
+
+    // Default Demo SOP Data
+    const defaultSop = {
+      title: "YouTube Video Publishing & Distribution SOP",
+      phases: [
+        {
+          phaseName: "Phase 1: Pre-Upload Quality Control",
+          steps: [
+            { id: 's1', text: "Render master video in ProRes 422 or High-Bitrate H.264 (4K preferred)", timerMins: 0 },
+            { id: 's2', text: "Run audio through loudness meter to ensure -14 LUFS compliance and < -1 dBTP true peak", timerMins: 5 },
+            { id: 's3', text: "Review custom 1280x720 thumbnail design at mobile display sizes", timerMins: 0 }
+          ]
+        },
+        {
+          phaseName: "Phase 2: Metadata & Upload Execution",
+          steps: [
+            { id: 's4', text: "Upload video to YouTube Studio and set visibility to 'Unlisted' for initial processing", timerMins: 15 },
+            { id: 's5', text: "Draft high-CTR title (tested across 3 variations under 60 characters)", timerMins: 0 },
+            { id: 's6', text: "Add description timestamps, sponsor links, and related video cards", timerMins: 10 }
+          ]
+        },
+        {
+          phaseName: "Phase 3: Post-Launch Distribution & Monitoring",
+          steps: [
+            { id: 's7', text: "Switch video visibility to 'Public' and pin top comment with CTA link", timerMins: 0 },
+            { id: 's8', text: "Share key takeaway video thread on Twitter/X and LinkedIn carousel", timerMins: 20 },
+            { id: 's9', text: "Monitor first 60 minutes click-through rate (CTR) and average view duration (AVD)", timerMins: 60 }
+          ]
+        }
+      ]
+    };
+
+    let currentSop = JSON.parse(JSON.stringify(defaultSop));
+    let checkedState = {};
+    let activeTimers = {};
+
+    // DOM Elements
+    const inputProcess = document.getElementById('input-process');
+    const inputContext = document.getElementById('input-context');
+    const selectComplexity = document.getElementById('select-complexity');
+    const btnGenerateAi = document.getElementById('btn-generate-ai');
+    const labelGenerate = document.getElementById('label-generate');
+    const btnDemoMode = document.getElementById('btn-demo-mode');
+
+    const sopTitleDisplay = document.getElementById('sop-title-display');
+    const labelCompletionPct = document.getElementById('label-completion-pct');
+    const labelCompletedCount = document.getElementById('label-completed-count');
+    const phasesContainer = document.getElementById('phases-container');
+    const printRunbookMount = document.getElementById('print-runbook-mount');
+
+    const btnResetChecklist = document.getElementById('btn-reset-checklist');
+    const btnPrintSop = document.getElementById('btn-print-sop');
+    const btnCopyNotion = document.getElementById('btn-copy-notion');
+    const labelCopyNotion = document.getElementById('label-copy-notion');
+
+    const alertBanner = document.getElementById('alert-banner');
+    const alertMessage = document.getElementById('alert-message');
+    const btnCloseAlert = document.getElementById('btn-close-alert');
+
+    // Settings Modal Elements
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+    const settingsModal = document.getElementById('settings-modal');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+    const btnCancelSettings = document.getElementById('btn-cancel-settings');
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    const btnClearKey = document.getElementById('btn-clear-key');
+    const inputApiKey = document.getElementById('input-api-key');
+    const selectProvider = document.getElementById('select-provider');
+    const inputModel = document.getElementById('input-model');
+    const keyStatusLabel = document.getElementById('key-status-label');
+
+    function loadSettings() {
+      const savedKey = localStorage.getItem('byok_api_key') || '';
+      const savedProvider = localStorage.getItem('byok_provider') || 'gemini';
+      const savedModel = localStorage.getItem('byok_model') || (savedProvider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini');
+
+      inputApiKey.value = savedKey;
+      selectProvider.value = savedProvider;
+      inputModel.value = savedModel;
+
+      if (savedKey) {
+        keyStatusLabel.textContent = `API Key: Connected (${savedProvider})`;
+        keyStatusLabel.parentElement.classList.replace('text-slate-700', 'text-emerald-700');
+        keyStatusLabel.parentElement.classList.add('bg-emerald-50', 'border-emerald-200');
+      } else {
+        keyStatusLabel.textContent = 'API Key: Not Set';
+      }
+    }
+
+    btnOpenSettings.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+    function closeSettings() { settingsModal.classList.add('hidden'); }
+    btnCloseSettings.addEventListener('click', closeSettings);
+    btnCancelSettings.addEventListener('click', closeSettings);
+
+    btnSaveSettings.addEventListener('click', () => {
+      const key = inputApiKey.value.trim();
+      const prov = selectProvider.value;
+      const model = inputModel.value.trim();
+
+      if (key) {
+        localStorage.setItem('byok_api_key', key);
+        localStorage.setItem('byok_provider', prov);
+        localStorage.setItem('byok_model', model);
+      } else {
+        localStorage.removeItem('byok_api_key');
+      }
+      loadSettings();
+      closeSettings();
+    });
+
+    btnClearKey.addEventListener('click', () => {
+      localStorage.removeItem('byok_api_key');
+      inputApiKey.value = '';
+      loadSettings();
+      closeSettings();
+    });
+
+    function showAlert(msg) {
+      alertMessage.textContent = msg;
+      alertBanner.classList.remove('hidden');
+    }
+    btnCloseAlert.addEventListener('click', () => alertBanner.classList.add('hidden'));
+
+    // Persistent Checked State
+    function loadSavedState() {
+      const saved = localStorage.getItem('sop_checked_state');
+      if (saved) {
+        try { checkedState = JSON.parse(saved); } catch (e) { checkedState = {}; }
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem('sop_checked_state', JSON.stringify(checkedState));
+      updateProgress();
+    }
+
+    function updateProgress() {
+      let totalSteps = 0;
+      let completedSteps = 0;
+
+      currentSop.phases.forEach(phase => {
+        phase.steps.forEach(step => {
+          totalSteps++;
+          if (checkedState[step.id]) completedSteps++;
+        });
+      });
+
+      const pct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+      labelCompletionPct.textContent = `${pct}% Completed`;
+      labelCompletedCount.textContent = `${completedSteps} of ${totalSteps} steps checked`;
+    }
+
+    // Render Phases & Steps
+    function renderSop() {
+      sopTitleDisplay.textContent = currentSop.title || 'Standard Operating Procedure';
+      phasesContainer.innerHTML = '';
+
+      currentSop.phases.forEach((phase, pIdx) => {
+        const phaseCard = document.createElement('div');
+        phaseCard.className = 'bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm';
+
+        let stepsHtml = '';
+        phase.steps.forEach(step => {
+          const isChecked = !!checkedState[step.id];
+          const hasTimer = step.timerMins && step.timerMins > 0;
+
+          stepsHtml += `
+            <div class="p-4 border-b border-slate-100 last:border-b-0 flex items-start justify-between gap-4 hover:bg-slate-50/70 transition-colors">
+              <div class="flex items-start gap-3 flex-1">
+                <input type="checkbox" id="check-${step.id}" data-id="${step.id}" ${isChecked ? 'checked' : ''} class="step-checkbox mt-1 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer">
+                <label for="check-${step.id}" class="text-xs sm:text-sm font-medium cursor-pointer select-none leading-relaxed ${isChecked ? 'line-through text-slate-400' : 'text-slate-800'}">
+                  ${step.text}
+                </label>
+              </div>
+
+              ${hasTimer ? `
+                <div class="flex items-center gap-2 shrink-0 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-mono">
+                  <i data-lucide="timer" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span id="timer-label-${step.id}">${step.timerMins}:00</span>
+                  <button type="button" class="btn-timer-toggle text-[11px] font-bold text-emerald-700 hover:text-emerald-900 ml-1" data-id="${step.id}" data-mins="${step.timerMins}">
+                    Start
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        });
+
+        phaseCard.innerHTML = `
+          <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-mono">${pIdx + 1}</span>
+              ${phase.phaseName}
+            </span>
+            <span class="text-[11px] text-slate-400 font-mono">${phase.steps.length} steps</span>
+          </div>
+          <div class="divide-y divide-slate-100">
+            ${stepsHtml}
+          </div>
+        `;
+
+        phasesContainer.appendChild(phaseCard);
+      });
+
+      // Bind Checkbox Handlers
+      document.querySelectorAll('.step-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const id = e.target.dataset.id;
+          checkedState[id] = e.target.checked;
+          saveState();
+
+          const label = document.querySelector(`label[for="check-${id}"]`);
+          if (label) {
+            if (e.target.checked) {
+              label.classList.add('line-through', 'text-slate-400');
+              label.classList.remove('text-slate-800');
+            } else {
+              label.classList.remove('line-through', 'text-slate-400');
+              label.classList.add('text-slate-800');
+            }
+          }
+        });
+      });
+
+      // Bind Countdown Timers
+      document.querySelectorAll('.btn-timer-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const mins = parseInt(btn.dataset.mins, 10);
+          toggleTimer(id, mins, btn);
+        });
+      });
+
+      lucide.createIcons();
+      updateProgress();
+    }
+
+    // Timer Logic
+    function toggleTimer(id, initialMins, buttonEl) {
+      if (activeTimers[id]) {
+        // Stop timer
+        clearInterval(activeTimers[id].interval);
+        delete activeTimers[id];
+        buttonEl.textContent = 'Start';
+        buttonEl.classList.remove('text-amber-700');
+        return;
+      }
+
+      // Start timer
+      let remainingSec = initialMins * 60;
+      const label = document.getElementById(`timer-label-${id}`);
+      buttonEl.textContent = 'Pause';
+      buttonEl.classList.add('text-amber-700');
+
+      const interval = setInterval(() => {
+        remainingSec--;
+        if (remainingSec <= 0) {
+          clearInterval(interval);
+          delete activeTimers[id];
+          label.textContent = 'DONE!';
+          label.className = 'font-bold text-emerald-600 animate-pulse';
+          buttonEl.textContent = 'Done';
+          return;
+        }
+
+        const m = Math.floor(remainingSec / 60);
+        const s = remainingSec % 60;
+        label.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+      }, 1000);
+
+      activeTimers[id] = { interval, remainingSec };
+    }
+
+    // Reset Checks
+    btnResetChecklist.addEventListener('click', () => {
+      checkedState = {};
+      saveState();
+      renderSop();
+    });
+
+    // Demo Mode Loader
+    btnDemoMode.addEventListener('click', () => {
+      currentSop = JSON.parse(JSON.stringify(defaultSop));
+      checkedState = {};
+      saveState();
+      renderSop();
+      showAlert('Loaded YouTube Publishing SOP demo!');
+    });
+
+    // Export to Notion Markdown
+    btnCopyNotion.addEventListener('click', async () => {
+      let md = `# ${currentSop.title}\n\n`;
+      md += `> **Status:** Standard Operating Procedure (Generated with GreenTools.dev)\n\n`;
+
+      currentSop.phases.forEach((phase, idx) => {
+        md += `## ${phase.phaseName}\n\n`;
+        phase.steps.forEach(step => {
+          const checked = checkedState[step.id] ? 'x' : ' ';
+          const timerNote = step.timerMins ? ` *(Estimated time: ${step.timerMins} mins)*` : '';
+          md += `- [${checked}] ${step.text}${timerNote}\n`;
+        });
+        md += `\n`;
+      });
+
+      await navigator.clipboard.writeText(md);
+      labelCopyNotion.textContent = 'Copied Markdown!';
+      setTimeout(() => labelCopyNotion.textContent = 'Export to Notion', 2000);
+    });
+
+    // Print Runbook
+    btnPrintSop.addEventListener('click', () => {
+      printRunbookMount.innerHTML = `
+        <h1 style="font-size: 20pt; font-weight: bold; margin-bottom: 8px;">${currentSop.title}</h1>
+        <p style="font-size: 10pt; color: #64748b; margin-bottom: 24px;">Generated by GreenTools.dev &bull; Operational Runbook</p>
+      `;
+
+      currentSop.phases.forEach(phase => {
+        let block = `<div style="margin-bottom: 24px;"><h2 style="font-size: 14pt; font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 12px;">${phase.phaseName}</h2><ul style="list-style: none; padding: 0;">`;
+        phase.steps.forEach(step => {
+          block += `<li style="margin-bottom: 10px; font-size: 11pt; display: flex; align-items: flex-start; gap: 8px;"><span style="display: inline-block; width: 14px; height: 14px; border: 1.5px solid #475569; margin-top: 3px;"></span> <span>${step.text} ${step.timerMins ? `(${step.timerMins}m)` : ''}</span></li>`;
+        });
+        block += `</ul></div>`;
+        printRunbookMount.innerHTML += block;
+      });
+
+      window.print();
+    });
+
+    // AI Generation via Direct In-Browser Fetch (BYOK)
+    btnGenerateAi.addEventListener('click', async () => {
+      const processName = inputProcess.value.trim();
+      if (!processName) {
+        showAlert('Please enter a process or workflow title first.');
+        return;
+      }
+
+      const apiKey = localStorage.getItem('byok_api_key');
+      if (!apiKey) {
+        showAlert('No API Key detected. Please click "API Key: Not Set" to enter your key, or use "Try Demo" to preview.');
+        settingsModal.classList.remove('hidden');
+        return;
+      }
+
+      const provider = localStorage.getItem('byok_provider') || 'gemini';
+      const model = localStorage.getItem('byok_model') || (provider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini');
+      const context = inputContext.value.trim();
+      const complexity = selectComplexity.value;
+
+      labelGenerate.textContent = 'Building Procedural Runbook...';
+      btnGenerateAi.disabled = true;
+
+      const systemPrompt = `You are a Principal Operations Architect and Systems Engineer.
+Create a high-clarity Standard Operating Procedure (SOP) for: "${processName}".
+Context: "${context || 'General operations'}". Complexity mode: "${complexity}".
+
+Return ONLY a valid JSON object matching this exact schema:
+{
+  "title": "${processName}",
+  "phases": [
+    {
+      "phaseName": "Phase 1: Clear Stage Name",
+      "steps": [
+        {
+          "id": "step_1",
+          "text": "Specific, actionable instruction with explicit success criteria",
+          "timerMins": 0
+        }
+      ]
+    }
+  ]
+}
+Include realistic timerMins values (e.g. 5, 15, 30) for time-boxed or review tasks, or 0 if un-timed. Include 3 to 4 sequential phases. Return zero markdown text outside the JSON.`;
+
+      try {
+        let jsonResponseText = '';
+
+        if (provider === 'gemini') {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: systemPrompt }] }],
+              generationConfig: { responseMimeType: 'application/json' }
+            })
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error?.message || `Gemini returned status ${res.status}`);
+          }
+
+          const data = await res.json();
+          jsonResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        } else {
+          const url = `https://api.openai.com/v1/chat/completions`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [{ role: 'user', content: systemPrompt }],
+              response_format: { type: 'json_object' }
+            })
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error?.message || `OpenAI returned status ${res.status}`);
+          }
+
+          const data = await res.json();
+          jsonResponseText = data.choices?.[0]?.message?.content;
+        }
+
+        let parsed = JSON.parse(jsonResponseText);
+        if (parsed.sop) parsed = parsed.sop;
+
+        if (parsed.phases && parsed.phases.length > 0) {
+          // Generate unique step IDs
+          let counter = 1;
+          parsed.phases.forEach(p => {
+            p.steps.forEach(s => {
+              s.id = `gen_s_${counter++}`;
+            });
+          });
+
+          currentSop = parsed;
+          checkedState = {};
+          saveState();
+          renderSop();
+          showAlert(`Successfully built SOP with ${counter - 1} steps using ${model}!`);
+        } else {
+          throw new Error('AI returned an unexpected JSON structure.');
+        }
+
+      } catch (err) {
+        console.error(err);
+        showAlert(`Generation failed: ${err.message}`);
+      } finally {
+        labelGenerate.textContent = 'Generate Interactive SOP';
+        btnGenerateAi.disabled = false;
+      }
+    });
+
+    // Initialization
+    loadSettings();
+    loadSavedState();
+    renderSop();
+  </script>
+</body>
+</html>
